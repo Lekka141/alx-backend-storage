@@ -8,6 +8,7 @@ from typing import Callable
 redis_client = redis.Redis()
 CACHE_EXPIRATION = 10  # Cache expiration time in seconds
 
+
 def cache_page(method: Callable) -> Callable:
     """Decorator to cache the page content with an expiration time."""
     @wraps(method)
@@ -21,6 +22,7 @@ def cache_page(method: Callable) -> Callable:
         return content
     return wrapper
 
+
 def count_access(method: Callable) -> Callable:
     """Decorator to count the number of accesses to a particular URL."""
     @wraps(method)
@@ -29,6 +31,7 @@ def count_access(method: Callable) -> Callable:
         redis_client.incr(count_key)
         return method(url)
     return wrapper
+
 
 @cache_page
 @count_access
