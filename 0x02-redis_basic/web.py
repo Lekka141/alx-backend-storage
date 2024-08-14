@@ -1,38 +1,46 @@
 #!/usr/bin/env python3
+'''A module with tools for request caching and tracking.
+'''
 import redis
 import requests
 from functools import wraps
+from typing import Callable
 
-r = redis.Redis()
+
+# Initialize the Redis connection
+redis_store = redis.Redis(host='localhost', port=6379, db=0)
+'''The module-level Redis instance.
+'''
 
 
-def url_access_count(method):
-    """decorator for get_page function"""
+def data_cacher(method: Callable) -> Callable:
+    '''Caches the output of fetched data.
+    '''
     @wraps(method)
-    def wrapper(url):
-        """wrapper function"""
-        key = "cached:" + url
-        cached_value = r.get(key)
-        if cached_value:
-            return cached_value.decode("utf-8")
+    def invoker(url: str) -> str:
+        '''The wrapper function for caching the output.
+        '''
+        # Increment the count of how many times this URL has been requested
+        redis_store.incr(f'count:{url}')
+        
+        # Check if the result is already cached
+        cached_result = redis_store.get(f'result:{url}')
+        if cached_result:
+            return cached_result.decode('utf-8')
+        
+        # Fetch the result and cache it
+        result = method(url)
+        redis_store.setex(f'result:{url}', 10, result)
+        return result
+    
+    return invoker
 
-            # Get new content and update cache
-        key_count = "count:" + url
-        html_content = method(url)
 
-        r.incr(key_count)
-        r.set(key, html_content, ex=10)
-        r.expire(key, 10)
-        return html_content
-    return wrapper
-
-
-@url_access_count
+@data_cacher
 def get_page(url: str) -> str:
-    """obtain the HTML content of a particular"""
-    results = requests.get(url)
-    return results.text
-
-
-if __name__ == "__main__":
-    get_page('http://slowwly.robertomurray.co.uk')
+    '''Returns the content of a URL after caching the request's response,
+    and tracking the request.
+    '''
+    response = requests.get(url)
+    response.raise_for_status()  # Ensure we raise an exception for bad status codes
+    return response.text
