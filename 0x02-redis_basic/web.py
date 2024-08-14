@@ -22,17 +22,17 @@ def data_cacher(method: Callable) -> Callable:
         '''
         # Increment the count of how many times this URL has been requested
         redis_store.incr(f'count:{url}')
-        
+
         # Check if the result is already cached
         cached_result = redis_store.get(f'result:{url}')
         if cached_result:
             return cached_result.decode('utf-8')
-        
+
         # Fetch the result and cache it
         result = method(url)
         redis_store.setex(f'result:{url}', 10, result)
         return result
-    
+
     return invoker
 
 
@@ -42,5 +42,5 @@ def get_page(url: str) -> str:
     and tracking the request.
     '''
     response = requests.get(url)
-    response.raise_for_status()  # Ensure we raise an exception for bad status codes
+    response.raise_for_status()  # Exception for bad status codes
     return response.text
