@@ -1,60 +1,38 @@
 #!/usr/bin/env python3
-'''A module with tools for request caching and tracking.'''
-
 import redis
 import requests
 from functools import wraps
-from typing import Callable
+
+r = redis.Redis()
 
 
-redis_store = redis.Redis()
-'''The module-level Redis instance.'''
-
-
-def data_cacher(method: Callable[[str], str]) -> Callable[[str], str]:
-    '''Caches the output of fetched data.
-
-    Args:
-        method (Callable[[str], str]): The function that fetches the data.
-
-    Returns:
-        Callable[[str], str]: The wrapped function that caches its result.
-    '''
+def url_access_count(method):
+    """decorator for get_page function"""
     @wraps(method)
-    def invoker(url: str) -> str:
-        '''The wrapper function for caching the output.
+    def wrapper(url):
+        """wrapper function"""
+        key = "cached:" + url
+        cached_value = r.get(key)
+        if cached_value:
+            return cached_value.decode("utf-8")
 
-        Args:
-            url (str): The URL to fetch the content from.
+            # Get new content and update cache
+        key_count = "count:" + url
+        html_content = method(url)
 
-        Returns:
-            str: The content of the URL, either cached or freshly fetched.
-        '''
-        # Increment the access count for the URL
-        redis_store.incr(f'count:{url}')
-
-        # Check if the URL result is cached
-        cached_result = redis_store.get(f'result:{url}')
-        if cached_result:
-            return cached_result.decode('utf-8')
-
-        # Fetch the result and cache it with an expiration time
-        result = method(url)
-        redis_store.setex(f'result:{url}', 10, result)
-        return result
-
-    return invoker
+        r.incr(key_count)
+        r.set(key, html_content, ex=10)
+        r.expire(key, 10)
+        return html_content
+    return wrapper
 
 
-@data_cacher
+@url_access_count
 def get_page(url: str) -> str:
-    '''Returns the content of a URL after caching the request's response
-    and tracking the request.
+    """obtain the HTML content of a particular"""
+    results = requests.get(url)
+    return results.text
 
-    Args:
-        url (str): The URL to fetch the content from.
 
-    Returns:
-        str: The content of the URL.
-    '''
-    return requests.get(url).text
+if __name__ == "__main__":
+    get_page('http://slowwly.robertomurray.co.uk')
