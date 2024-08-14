@@ -14,7 +14,7 @@ redis_store = redis.Redis(host='localhost', port=6379, db=0)
 
 
 def data_cacher(method: Callable) -> Callable:
-    '''Caches the output of fetched data.
+    '''Cache the output of fetched data.
     '''
     @wraps(method)
     def invoker(url: str) -> str:
