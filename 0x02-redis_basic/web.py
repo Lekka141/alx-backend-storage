@@ -14,7 +14,6 @@ from typing import Callable
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 CACHE_EXPIRATION = 10  # Cache expiration time in seconds
 
-
 def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
     """
     Decorator to count the number of accesses to a particular URL.
@@ -32,7 +31,6 @@ def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
         redis_client.incr(count_key)  # Increment the access count
         return method(url)
     return wrapper
-
 
 def cache_page(method: Callable[[str], str]) -> Callable[[str], str]:
     """
@@ -56,7 +54,6 @@ def cache_page(method: Callable[[str], str]) -> Callable[[str], str]:
         redis_client.setex(cache_key, CACHE_EXPIRATION, content)
         return content
     return wrapper
-
 
 @count_access
 @cache_page
