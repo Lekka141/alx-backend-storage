@@ -15,6 +15,25 @@ redis_client = redis.Redis(host='localhost', port=6379, db=0)
 CACHE_EXPIRATION = 10  # Cache expiration time in seconds
 
 
+def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
+    """
+    Decorator to count the number of accesses to a particular URL.
+
+    Args:
+        method: A function that fetches the page content from a URL.
+
+    Returns:
+        A wrapped function that increments the access count before calling
+        the original function to get the content.
+    """
+    @wraps(method)
+    def wrapper(url: str) -> str:
+        count_key = f"count:{url}"
+        redis_client.incr(count_key)  # Increment the access count
+        return method(url)
+    return wrapper
+
+
 def cache_page(method: Callable[[str], str]) -> Callable[[str], str]:
     """
     Decorator to cache the page content with an expiration time.
@@ -36,26 +55,6 @@ def cache_page(method: Callable[[str], str]) -> Callable[[str], str]:
         content = method(url)
         redis_client.setex(cache_key, CACHE_EXPIRATION, content)
         return content
-    return wrapper
-
-
-def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
-    """
-    Decorator to count the number of accesses to a particular URL.
-
-    Args:
-        method: A function that fetches the page content from a URL.
-
-    Returns:
-        A wrapped function that increments the access count before calling
-        the original function to get the content.
-    """
-    @wraps(method)
-    def wrapper(url: str) -> str:
-        count_key = f"count:{url}"
-        redis_client.incr(count_key)
-        redis_client.expire(count_key, CACHE_EXPIRATION)  # Set expiration time
-        return method(url)
     return wrapper
 
 
