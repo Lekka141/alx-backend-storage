@@ -54,6 +54,7 @@ def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
     def wrapper(url: str) -> str:
         count_key = f"count:{url}"
         redis_client.incr(count_key)
+        redis_client.expire(count_key, CACHE_EXPIRATION)  # Set expiration time
         return method(url)
     return wrapper
 
