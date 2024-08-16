@@ -31,10 +31,8 @@ def cache_page(method: Callable[[str], str]) -> Callable[[str], str]:
         cache_key = f"cache:{url}"
         cached_content = redis_client.get(cache_key)
         if cached_content:
-            print(f"Cache hit for {url}")
             return cached_content.decode("utf-8")
-        
-        print(f"Cache miss for {url}. Fetching new content.")
+
         content = method(url)
         redis_client.setex(cache_key, CACHE_EXPIRATION, content)
         return content
@@ -55,8 +53,7 @@ def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
     @wraps(method)
     def wrapper(url: str) -> str:
         count_key = f"count:{url}"
-        current_count = redis_client.incr(count_key)
-        print(f"Access count for {url}: {current_count}")
+        redis_client.incr(count_key)
         return method(url)
     return wrapper
 
