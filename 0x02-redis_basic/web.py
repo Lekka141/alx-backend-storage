@@ -58,8 +58,8 @@ def count_access(method: Callable[[str], str]) -> Callable[[str], str]:
     return wrapper
 
 
-@cache_page
 @count_access
+@cache_page
 def get_page(url: str) -> str:
     """
     Fetches the page content from the given URL and returns it.
